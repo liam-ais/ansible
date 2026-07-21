@@ -1,0 +1,19 @@
+---
+- name: "Defini le fichier pour les vars des MDP"
+  include_vars:
+    file: "vault/password.yml"
+
+# 1. Création de la BDD
+- name: "glpi database"
+  community.mysql.mysql_db:
+    name: "{{glpi_db_name}}"
+    state: present
+
+# 2. Création de l'utilisateur et définitions des droits
+- name: "GLPI user and privileges"
+  community.mysql.mysql_user:
+    name: "{{glpi_db_user}}"
+    password: "{{glpi_db_password}}"
+    priv: "{{glpi_db_name}}.*:ALL"
+    host: "srv-webl1"
+    state: present

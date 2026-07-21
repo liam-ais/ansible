@@ -1,0 +1,134 @@
+---
+- name: "Defini le fichier pour les vars des MDP"
+  include_vars:
+    file: "vault/password.yml"
+
+# 0. Ajout du compte user ansible dans le groupe www-data
+- name: "Add user-ansible to www-data group"
+  command: usermod -a -G www-data user-ansible
+
+# 1. Création des répertoires pour GLPI
+- name: "glpi directory"
+  ansible.builtin.file:
+    path: "{{item}}"
+    owner: "www-data"
+    group: "www-data"
+    state: directory
+    mode: "0775"
+    recurse: yes
+  with_items:
+    - "{{glpi_directory}}"
+    - "{{glpi_directory_log}}"
+    - "{{glpi_directory_css}}"
+    - "{{glpi_directory_config}}"
+    - "/etc/ssl/glpi"
+
+# 2. Décompresse les fichiers sources
+- name: "uncompress GLPI archive"
+  unarchive:
+    src: "{{glpi_archive_url}}"
+    dest: "{{glpi_directory}}"
+    owner: "www-data"
+    group: "www-data"
+    mode: "0775"
+    remote_src: yes
+
+# 3. Génère la private Key
+- name: "Generate SSL private key"
+  command: openssl genrsa -out /etc/ssl/glpi/glpi.key 2048
+  args:
+    creates: /etc/ssl/glpi/glpi.key
+
+# 4. Génère le certificat SSL
+- name: "Generate SSL certificate"
+  command: >
+    openssl req -x509 -new -nodes
+    -key /etc/ssl/glpi/glpi.key
+    -sha256 -days 365
+    -out /etc/ssl/glpi/glpi.crt
+    -subj "/C=FR/ST=IDF/L=Paris/O=GLPI/CN=srv-webl1"
+  args:
+    creates: /etc/ssl/glpi/glpi.crt
+
+# 5. Copie les fichiers GLPI dans les répertoires
+- name: "Copie les fichiers de configuration"
+  ansible.builtin.copy:
+    src: /var/www/glpi/config
+    dest: "{{glpi_directory_config}}"
+    remote_src: true
+    mode: '0775'
+    owner: user-ansible
+    group: www-data
+
+- name: "Copie les fichiers CSS"
+  ansible.builtin.copy:
+    src: /var/www/glpi/files
+    dest: "{{glpi_directory_css}}"
+    remote_src: true
+    mode: '0775'
+    owner: user-ansible
+    group: www-data
+
+# 6. Créer les fichiers nécessaire pour GLPI
+- name: "Configure GLPI downstream.php"
+  ansible.builtin.blockinfile:
+    path: /var/www/glpi/inc/downstream.php
+    create: yes
+    marker: ""
+    block: |
+      <?php
+      define('GLPI_CONFIG_DIR', '/etc/glpi/');
+      if (file_exists(GLPI_CONFIG_DIR . '/local_define.php')) {
+          require_once GLPI_CONFIG_DIR . '/local_define.php';
+      }
+
+- name: "Configure GLPI local_define.php"
+  ansible.builtin.blockinfile:
+    path: /etc/glpi/local_define.php
+    create: yes
+    marker: ""
+    block: |
+      <?php
+      define('GLPI_VAR_DIR', '/var/lib/glpi/files');
+      define('GLPI_LOG_DIR', '/var/log/glpi');
+
+# 7. Créer le fichiers VirtualHost Apache
+- name: "Setup virtualhost"
+  ansible.builtin.template:
+    src: virtualhost.conf
+    dest: "/etc/apache2/sites-available/glpi.conf"
+
+# 8. Active les modules Apache/PHP
+- name: "Configure Apache modules and sites"
+  command: "{{ item }}"
+  with_items:
+    - a2enmod ssl
+    - a2enmod rewrite
+    - a2enmod proxy_fcgi
+    - a2enmod setenvif
+    - a2enconf php8.2-fpm
+    - a2ensite glpi.conf
+    - a2dissite 000-default.conf
+
+# 9. Finalise l'installation de GLPI
+- name: "Install GLPI"
+  ansible.builtin.command: >
+    php bin/console -n db:install
+    -H {{ hostvars['srv-dbl1']['ansible_host'] }} -P 3306
+    -d {{glpi_db_name}}
+    -u {{db_user}} -p {{db_password}}
+    -L fr_FR --reconfigure --force
+  args:
+    chdir: "/var/www/glpi"
+
+# 10. Nettoie le fichier d'installation PHP
+- name: "Clean install.php file"
+  ansible.builtin.file:
+    path: "/var/www/glpi/install/install.php"
+    state: absent
+
+# 11. Restart le service Apache
+- name: "Restart Apache"
+  ansible.builtin.service:
+    name: apache2
+    state: restarted

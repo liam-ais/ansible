@@ -1,0 +1,20 @@
+# Variables communes pour GLPI (Apache + MariaDB)
+
+# Nom de la base de donnée utilisée par GLPI
+glpi_db_name: "GLPI"
+
+# User et password (variables définies dans vault/password.yml)
+glpi_db_user: "{{db_user}}"
+glpi_db_password: "{{db_password}}"
+
+# Nom de GLPI
+glpi_name: "glpi"
+
+# Répertoires d'installation
+glpi_directory: "/var/www/{{glpi_name}}"
+glpi_directory_log: "/var/log/{{glpi_name}}"
+glpi_directory_css: "/var/lib/{{glpi_name}}"
+glpi_directory_config: "/etc/{{glpi_name}}"
+
+# Source GLPI
+glpi_archive_url: "https://github.com/glpi-project/glpi/releases/download/10.0.10/glpi-10.0.10.tgz"

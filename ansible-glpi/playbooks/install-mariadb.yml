@@ -1,0 +1,6 @@
+---
+- name: "Install MariaDb"
+  hosts: "srv-dbl1"
+  gather_facts: no
+  roles:
+    - role: mariadb

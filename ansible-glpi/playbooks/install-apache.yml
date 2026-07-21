@@ -1,0 +1,7 @@
+---
+- name: "Installation apache"
+  hosts: srv-webl1
+  roles:
+    - role: "apache"
+  vars:
+    php_install: yes

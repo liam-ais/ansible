@@ -1,0 +1,12 @@
+---
+- name: "glpi db conf"
+  hosts: "srv-dbl1"
+  gather_facts: no
+  roles:
+    - role: "glpi/confdb"
+
+- name: "glpi apache conf"
+  hosts: "srv-webl1"
+  gather_facts: no
+  roles:
+    - role: "glpi/confapache"

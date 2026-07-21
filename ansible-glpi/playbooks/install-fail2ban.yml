@@ -1,0 +1,5 @@
+---
+- name: "Installation fail2ban"
+  hosts: all
+  roles:
+    - role: "fail2ban"

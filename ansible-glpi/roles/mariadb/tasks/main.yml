@@ -1,0 +1,24 @@
+---
+
+# 1. Installation de mariadb et Python
+- name: "Install Mariadb"
+  apt:
+    name: "mariadb-server,python3-mysqldb"
+    state: "present"
+
+# 2. Démarre le service MariaDb
+- name: "start service MariaDb"
+  service:
+    name: "mariadb"
+    state: "started"
+    enabled: "yes"
+
+# 3. Configure le port d'écoute
+- name: "change 50-server.cnf"
+  command: /usr/bin/sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/mariadb.conf.d/50-server.cnf
+
+# 4. Redémarre MariaDb
+- name: "restart mariadb"
+  service:
+    name: "mariadb"
+    state: "restarted"

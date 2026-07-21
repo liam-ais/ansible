@@ -1,0 +1,59 @@
+---
+
+# 1. Installation des packages Fail2Ban
+- name: "fail2ban install"
+  apt:
+    name: "fail2ban,iptables"
+    state: "present"
+
+# 2. Active le service Fail2ban
+- name: "fail2ban service activation"
+  service:
+    name: "fail2ban"
+    state: "started"
+    enabled: yes
+
+# 3. Configuration du service
+- name: "Configuration du service"
+  ansible.builtin.blockinfile:
+    path: /etc/fail2ban/jail.local
+    create: yes
+    block: |
+      [DEFAULT]
+      ignoreip = 127.0.0.1 192.168.1.159
+      findtime = 3600
+      bantime = 3600
+      maxretry = 3
+
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = journal
+      backend = systemd
+      maxretry = 3
+
+      [glpi]
+      enabled  = true
+      port     = http,https
+      filter   = glpi
+      logpath = /var/log/glpi/event.log
+      maxretry = 3
+      findtime = 600
+
+# 4. Créer le fichier regex pour lire les logs GLPI
+- name: "Configuration du filter GLPI"
+  ansible.builtin.blockinfile:
+    path: /etc/fail2ban/filter.d/glpi.conf
+    create: yes
+    block: |
+      [Definition]
+      prefregex = ^(?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[\@\^\]\+\\n)?
+      failregex = ^.*\[login\] 3: Connexion échouée de .* depuis l'IP <HOST>$
+      journalmatch = _SYSTEMD_UNIT=glpi.service
+
+# 5. Restart du service
+- name: "Restart du service"
+  service:
+    name: "fail2ban"
+    state: "restarted"

@@ -1,0 +1,19 @@
+---
+
+# 1. Install Apache2
+- name: "apache install"
+  apt:
+    name: "apache2"
+    state: "present"
+
+# 2. Active le service Apache
+- name: "apache service activation"
+  service:
+    name: "apache2"
+    state: "started"
+    enabled: yes
+
+# 3. Install php
+- name: "install php"
+  include_tasks: "php-install.yml"
+  when: php_install | default(False) | bool
