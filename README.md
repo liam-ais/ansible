@@ -7,6 +7,7 @@ Repo regroupant mes projets, playbooks et procédures autour d'**Ansible**.
 | Dossier | Description |
 |---------|-------------|
 | [`ansible-ee/`](ansible-ee/) | Déployer et utiliser un Ansible Execution Environment |
+| [`ansible-glpi/`](ansible-glpi/) | Déploiement automatisé de GLPI + hardening Fail2ban |
 
 ---
 
