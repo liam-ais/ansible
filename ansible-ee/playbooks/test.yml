@@ -1,0 +1,16 @@
+---
+- name: Test Execution Environment
+  hosts: localhost
+  gather_facts: true
+
+  tasks:
+    - name: Ping localhost
+      ansible.builtin.ping:
+
+    - name: Afficher la version d'Ansible
+      ansible.builtin.debug:
+        var: ansible_version.full
+
+    - name: Afficher la version de Python
+      ansible.builtin.debug:
+        var: ansible_python.version.full
